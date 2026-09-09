@@ -1,0 +1,35 @@
+#!/bin/sh
+# A sonda do plantao: um tick a cada 60s, sem modelo nenhum.
+#
+# Um loop supervisionado em vez de um timer, porque aqui nao ha timer -- a
+# imagem e supervisionada pelo s6 e essa e a forma que um job periodico toma
+# debaixo dele.
+#
+# /opt/plow, nunca $HERMES_HOME/skills. Os dois carregam esta sonda; so este e
+# root-owned. A copia na casa pertence ao uid 10000 num container em execucao,
+# entao agendar aquela rodaria o que um turno escreveu por ultimo, sozinho,
+# pra sempre.
+set -eu
+
+# Explicito e absoluto: um servico herda o PATH da arvore de supervisao, nao o
+# de um shell de login.
+PATH=/command:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin
+export PATH
+
+HERMES_HOME=/var/lib/hermes
+export HERMES_HOME
+
+# So o que a sonda precisa. Um GITHUB_TOKEN existe quando o dono vigia CI de um
+# repo privado; ausente e normal e a sonda de CI se recusa sozinha.
+GITHUB_TOKEN=$(cat /run/s6/container_environment/GITHUB_TOKEN 2>/dev/null || true)
+export GITHUB_TOKEN
+
+while :; do
+  # Nunca fatal. Um longrun que crasha e respawnado num loop apertado, e isso
+  # transforma um tick ruim num loop quente contra o servico do dono.
+  /command/s6-setuidgid hermes \
+    env HOME="$HERMES_HOME" HERMES_HOME="$HERMES_HOME" GITHUB_TOKEN="$GITHUB_TOKEN" \
+    /opt/hermes/.venv/bin/python3 /opt/plow/oc-shared/scripts/probe.py \
+    || echo "oncall-probe: a sonda saiu diferente de zero; tento no proximo tick" >&2
+  /bin/sleep 60
+done

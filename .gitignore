@@ -1,0 +1,9 @@
+# A credencial mintada pelo plow-agents. NUNCA vai pro git.
+plow-credentials
+.env
+*.env
+!/.env.example
+
+__pycache__/
+*.pyc
+.DS_Store

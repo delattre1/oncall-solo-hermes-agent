@@ -1,0 +1,21 @@
+services:
+  agent:
+    build: .
+    environment:
+      # Quem este agente e para o leaderboard do Agent Index. Sem isso o
+      # servico reporter fica de pe parado e nada aparece no indice.
+      AGENT_ID: oncall
+    volumes:
+      # `.host`, nao o caminho que o agente le: um bind carrega a posse desta
+      # maquina pra dentro, e a imagem copia o arquivo pro lugar como root.
+      - ./plow-credentials:/var/lib/plow/credentials.host:ro
+      # A casa do agente, preservada entre `up`/`down` pras sessoes e o setup
+      # dele sobreviverem. Um skill editado chega no rebuild + restart; so o
+      # SOUL.md ou um reset completo pedem `down -v`.
+      - agent-home:/var/lib/hermes
+    # O agente faz checkpoint da sessao no SIGTERM e o supervisor dele da 30s
+    # pra isso, entao o prazo do Docker tem que ficar do lado de fora desse.
+    stop_grace_period: 35s
+
+volumes:
+  agent-home:
