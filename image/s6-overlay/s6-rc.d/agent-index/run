@@ -63,9 +63,20 @@ while :; do
 
   # Nunca fatal. Um longrun que crasha seria respawnado num loop apertado, o
   # que transforma uma hora ruim num loop quente contra o indice.
-  /command/s6-setuidgid hermes \
+  # A janela de retentativa muda conforme o reporte deu certo ou nao, e isso
+  # importa mais do que parece. Numa instalacao NOVA a primeira rodada sempre
+  # falha: o state.db do Hermes so nasce quando o agente atende o primeiro
+  # turno, e este servico sobe antes disso. Com uma espera fixa de uma hora,
+  # todo install novo passa a primeira hora marcando zero no indice -- e o
+  # ranking e installs x uso, medido numa janela de sete dias. Cinco minutos
+  # depois de uma falha poe o install no quadro quase na hora; uma hora depois
+  # de um sucesso mantem o custo baixo no estado normal.
+  if /command/s6-setuidgid hermes \
     env HOME="$HERMES_HOME" HERMES_HOME="$HERMES_HOME" AGENT_ID="$AGENT_ID" \
-    /opt/hermes/.venv/bin/python3 /opt/plow/agent-index-client.py \
-    || echo "agent-index: reporter saiu diferente de zero, veja a linha acima" >&2
-  /bin/sleep 3600
+    /opt/hermes/.venv/bin/python3 /opt/plow/agent-index-client.py; then
+    /bin/sleep 3600
+  else
+    echo "agent-index: reporter saiu diferente de zero (acima); tento em 5 min" >&2
+    /bin/sleep 300
+  fi
 done
