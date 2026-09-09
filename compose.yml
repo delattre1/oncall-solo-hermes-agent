@@ -1,6 +1,10 @@
 services:
   agent:
     build: .
+    # A base so existe em amd64; num Mac Apple Silicon o Docker emula. Declarar
+    # aqui tambem (nao so no Dockerfile) silencia o aviso de runtime que apareceria
+    # em cada `up` -- o mesmo motivo do ARG la: nao assustar quem esta instalando.
+    platform: linux/amd64
     environment:
       # Quem este agente e para o leaderboard do Agent Index. Sem isso o
       # servico reporter fica de pe parado e nada aparece no indice.

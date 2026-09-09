@@ -8,7 +8,18 @@
 # plow-pbc/plow-hermes-agent, fixado tambem por digest. Ela nunca e movida:
 # toda VM inquilina herda exatamente este filesystem enquanto segura a
 # credencial Plow daquele dono, e uma tag movel trocaria codigo por baixo deles.
-FROM public.ecr.aws/e1h7x4a2/plow-cloud-agents:base-cd2a898d673812621bae6764560e455807e9818e@sha256:bfd4980f361a551e62569f8c2eb717c1076d0b8be3a0499b869eaece151336a4
+# A base e publicada SO pra linux/amd64. Sem declarar isso, o build num Mac
+# Apple Silicon imprime um aviso de plataforma incompativel -- inofensivo (o
+# Docker Desktop emula) mas ele aparece no PRIMEIRO build de todo instalador em
+# Mac ARM, que e exatamente o momento em que a pessoa decide se algo quebrou.
+#
+# Um ARG e nao uma constante: `FROM --platform=linux/amd64` dispara o lint
+# FromPlatformFlagConstDisallowed, que existe porque fixar plataforma no FROM
+# costuma ser engano. Aqui nao e -- e a unica que a base tem -- entao o ARG diz
+# isso e ainda deixa alguem sobrescrever (`--build-arg BASE_PLATFORM=...`) no dia
+# em que a Plow publicar arm64.
+ARG BASE_PLATFORM=linux/amd64
+FROM --platform=${BASE_PLATFORM} public.ecr.aws/e1h7x4a2/plow-cloud-agents:base-cd2a898d673812621bae6764560e455807e9818e@sha256:bfd4980f361a551e62569f8c2eb717c1076d0b8be3a0499b869eaece151336a4
 
 # Substitui o SOUL.md da propria base; o primeiro boot reafirma a posse root
 # nesse arquivo, e e a isso que o chmod no fim responde.
