@@ -30,6 +30,14 @@ failure more than once. The expensive turn — reading the log tail, correlating
 the last deploy, drafting the message — happens once per incident, not once per
 tick.
 
+**The event wakes the model, not a clock.** The probe invokes the agent the
+moment it opens an incident. There is a cron too, but it runs every thirty
+minutes and exists only as a safety net for when that invocation fails. This is
+not a detail: an earlier version of this agent polled the model every two
+minutes to ask whether anything had happened, and burned 730,000 tokens in three
+hours across zero incidents. Cost should track work. It also means the diagnosis
+reaches you in seconds instead of whenever the next tick lands.
+
 **It cannot invent a command.** It only ever runs remedies you registered by
 name during setup. This matters because the evidence it reads — HTTP response
 bodies, log lines, commit titles — is text written by other people, and a log

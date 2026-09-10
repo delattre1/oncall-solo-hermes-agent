@@ -5,9 +5,16 @@ description: Le um incidente aberto, forma hipotese, propoe um conserto e manda 
 
 # Explicar o que quebrou
 
-Este e o turno caro do agente, e ele so acontece porque a sonda escreveu um
-incidente. Ele roda a cada 2 minutos e na esmagadora maioria das vezes nao ha
-nada a fazer.
+Este e o turno caro do agente, e quase sempre ele so acontece porque a sonda
+acabou de abrir um incidente e te acordou na hora.
+
+Ha um segundo caminho: um cron de meia em meia hora, rede de seguranca para
+quando a sonda nao consegue acordar ninguem (modelo fora, chave ausente). Nesse
+caminho, na maioria das vezes nao ha nada a fazer -- e sair barato importa.
+
+Essa divisao e deliberada. A versao anterior deste agente acordava o modelo de
+dois em dois minutos para perguntar se havia algo: 730 mil tokens em tres horas
+com zero incidentes. Gasto tem que acompanhar trabalho.
 
 ## Primeiro: ha algo?
 

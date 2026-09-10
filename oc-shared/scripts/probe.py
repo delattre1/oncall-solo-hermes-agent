@@ -18,6 +18,50 @@ seguidas (padrao 2) pra virar DOWN. Uma falha isolada de rede as 3h nao vale
 acordar ninguem, e um alerta que o dono aprende a ignorar e pior que nenhum.
 """
 import json, os, socket, subprocess, sys, time, urllib.error, urllib.request
+# Quanto tempo esperar o turno do agente. A sonda dorme 60s entre ticks, entao um
+# turno lento atrasa o proximo tick -- aceitavel, porque quando isto roda EXISTE
+# um incidente aberto e a cadencia importa menos que a explicacao chegar.
+ESCALATE_TIMEOUT = 150
+
+
+def escalate(incident_id):
+    """Acorda o agente AGORA, no momento em que o incidente abre.
+
+    Esta funcao e a diferenca entre um agente honesto e um que so parece
+    ocupado. Sem ela, quem acorda o modelo e um cron de poucos minutos que roda
+    o dia inteiro e quase sempre responde `quiet` -- token queimado a esmo,
+    exatamente o que o anuncio do hackathon chama de "rodar seu proprio agente
+    num loop durante a noite". Medido neste agente antes da mudanca: 730 mil
+    tokens em tres horas, com zero incidentes novos.
+
+    Com ela, o gasto acompanha o trabalho: perto de zero enquanto esta tudo no
+    ar, e um turno de verdade quando algo cai. De quebra, a mensagem chega em
+    segundos em vez de esperar ate o proximo tick.
+
+    Nunca fatal. Se o turno falhar -- chave ausente, modelo fora, o que for --
+    o cron de rede de seguranca pega o incidente no proximo passe. Uma sonda que
+    morre porque o modelo esta indisponivel para de vigiar, que e o oposto do
+    que ela existe para fazer.
+    """
+    hermes = "/opt/hermes/bin/hermes"
+    if not os.path.exists(hermes):
+        return False
+    prompt = (f"O incidente {incident_id} acabou de abrir. Rode o oc-diagnose "
+              "agora: leia a evidencia, forme a hipotese, proponha no maximo um "
+              "remedio da lista e avise pelo notify.py.")
+    try:
+        done = subprocess.run([hermes, "-z", prompt, "--skills", "oc-diagnose", "--cli"],
+                              capture_output=True, text=True, timeout=ESCALATE_TIMEOUT)
+    except Exception as exc:
+        print(f"probe: nao consegui acordar o agente ({type(exc).__name__}); "
+              f"o cron de rede de seguranca pega no proximo passe")
+        return False
+    if done.returncode != 0:
+        print(f"probe: o turno do agente saiu {done.returncode}; "
+              f"o cron de rede de seguranca pega no proximo passe")
+        return False
+    return True
+
 from datetime import datetime, timezone
 
 HOME = os.environ.get("HERMES_HOME", "/var/lib/hermes")
@@ -217,6 +261,13 @@ def main():
             })
             entry["incident"] = filename
             print(f"probe: INCIDENTE aberto para {name} ({ident})")
+            # O estado vai pro disco ANTES de acordar o agente: o turno le esse
+            # arquivo, e um turno que corre na frente da gravacao le um incidente
+            # que ainda nao existe.
+            write_json(STATE, state)
+            changed = False
+            if escalate(ident):
+                print(f"probe: agente acordado para {ident}")
 
     if changed:
         write_json(STATE, state)

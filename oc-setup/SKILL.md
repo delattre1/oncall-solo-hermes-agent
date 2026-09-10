@@ -53,16 +53,24 @@ Escreva em `$HERMES_HOME/oncall/config.json`. `kind` e um de `http`, `tcp`,
 
 ## Ligar a vigilancia
 
-A sonda le a config sozinha a cada 60s -- nao ha nada a ligar nela. O que
-precisa existir e o cron que faz VOCE olhar os incidentes:
+A sonda le a config sozinha a cada 60s e, quando abre um incidente, ela mesma
+te acorda na hora. Nao ha nada a ligar nela.
+
+O que precisa existir e a REDE DE SEGURANCA -- um cron esparso, para o caso de a
+sonda nao ter conseguido acordar ninguem:
 
 ```
-hermes cron create "*/2 * * * *" \
+hermes cron create "*/30 * * * *" \
   "Rode o oc-diagnose agora: se houver incidente em estado novo, diagnostique e avise. Se nao houver, responda exatamente quiet." \
   --name oc-diagnose --skill oc-diagnose
 ```
 
-Sem `--deliver`, e isso e deliberado: `--deliver` repassa TODA resposta final,
+Meia hora, nao dois minutos, e isso importa. Um cron curto acorda o modelo o dia
+inteiro para responder `quiet` -- medido neste agente antes da mudanca: 730 mil
+tokens em tres horas, sem um unico incidente novo. Quem acorda o agente e o
+evento, nao o relogio.
+
+Sem `--deliver`, tambem deliberado: `--deliver` repassa TODA resposta final,
 inclusive as silenciosas, e este agente fica quieto quase o tempo todo. Quem
 manda mensagem e o `notify.py`, so quando ha o que dizer.
 
