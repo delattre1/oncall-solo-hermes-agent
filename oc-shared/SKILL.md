@@ -14,6 +14,11 @@ A sonda. Roda a cada 60s sob o s6 pela copia de `/opt/plow`, sem modelo. Voce
 quase nunca a chama a mao -- so se o dono pedir uma verificacao imediata logo
 depois de mudar a configuracao.
 
+## `scripts/health.py`
+Tendencia, calculada dos incidentes em disco: uptime, tempo ate detectar,
+alvos instaveis, o que ficou sem resposta. Sem modelo e sem sondar nada.
+Chamado por `oc-health`. Chave ausente = dado inexistente, nunca estimativa.
+
 ## `scripts/notify.py`
 A unica forma deste agente falar sem ser perguntado. Le o corpo do stdin ou de
 `--file`. Corpo vazio sai 0 sem postar: silencio e um resultado valido.

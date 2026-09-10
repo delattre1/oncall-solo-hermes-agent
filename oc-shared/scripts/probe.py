@@ -64,6 +64,16 @@ def escalate(incident_id):
 
 from datetime import datetime, timezone
 
+# Saida em linha. Sob o supervisor a saida e um PIPE, e o Python bufferiza em
+# blocos quando nao e terminal -- entao tudo que este arquivo imprime fica preso
+# num buffer e o log do servico aparece vazio. Medido: a sonda rodou horas
+# abrindo incidentes e o `docker compose logs` so mostrava "service starting".
+# Um vigia que nao consegue contar o que fez e indistinguivel de um parado.
+try:
+    sys.stdout.reconfigure(line_buffering=True)
+except AttributeError:          # Python < 3.7
+    pass
+
 HOME = os.environ.get("HERMES_HOME", "/var/lib/hermes")
 BASE = os.path.join(HOME, "oncall")
 CONFIG = os.path.join(BASE, "config.json")
@@ -194,6 +204,44 @@ def evidence_for(target, detail):
     return bundle
 
 
+def holding(config, now=None):
+    """Se a escalada deve ESPERAR -- e por que.
+
+    Duas razoes, e as duas sao do dono, nao do agente:
+
+    `snooze_until` -- ele disse "vou fazer deploy, fica quieto ate as X". Sem
+    isso, a unica forma de nao ser interrompido durante uma janela de manutencao
+    e desligar o agente, e quem desliga esquece de ligar.
+
+    `quiet_hours` -- a faixa em que so o que ele marcou como critico interrompe.
+    Um alvo em `except_targets` fura o silencio; o resto espera. Isto NAO impede
+    o incidente de abrir: detectar e de graca e o registro tem que existir. So a
+    mensagem espera, e o cron de rede de seguranca entrega quando a faixa passa.
+
+    Devolve o motivo (string) ou None. String em vez de bool porque quem chama
+    imprime o motivo no log -- um agente que fica em silencio sem dizer por que
+    e indistinguivel de um agente quebrado.
+    """
+    now = now or datetime.now(timezone.utc)
+    until = when_iso(config.get("snooze_until"))
+    if until and now < until:
+        return f"soneca ate {config['snooze_until']}"
+    quiet = config.get("quiet_hours") or {}
+    start, end = quiet.get("from"), quiet.get("to")
+    if start is None or end is None:
+        return None
+    hour = now.astimezone().hour
+    inside = (start <= hour or hour < end) if start > end else (start <= hour < end)
+    return f"horario de silencio ({start}h-{end}h)" if inside else None
+
+
+def when_iso(value):
+    try:
+        return datetime.fromisoformat(value)
+    except (TypeError, ValueError):
+        return None
+
+
 PROBES = {"http": probe_http, "tcp": probe_tcp, "github_actions": probe_github_actions}
 
 
@@ -277,7 +325,14 @@ def main():
             # que ainda nao existe.
             write_json(STATE, state)
             changed = False
-            if escalate(ident):
+            # Alvo marcado como excecao fura o silencio; o resto espera. O
+            # incidente ja esta em disco de qualquer jeito -- e so a MENSAGEM
+            # que segura, e o cron de rede de seguranca a entrega depois.
+            excepted = name in ((config.get("quiet_hours") or {}).get("except_targets") or [])
+            reason = None if excepted else holding(config)
+            if reason:
+                print(f"probe: {ident} aberto, mas nao vou acordar ninguem agora — {reason}")
+            elif escalate(ident):
                 print(f"probe: agente acordado para {ident}")
 
     if changed:

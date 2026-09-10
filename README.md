@@ -46,6 +46,42 @@ orders. If the right fix isn't on your list, it tells you what to do and stops.
 
 **It shuts up.** No "all clear" messages. No second page for the same incident.
 
+## Ask it how it's doing
+
+"Is anything down?" it answers on its own, the moment it happens. **"Is everything
+alright?" is a different question** — that one is about trend, and nobody texts
+you about trend at 3am. So it waits until you ask:
+
+```
+you:   how's it going? any trouble this week?
+agent: both up now. 3 incidents this week — github-api twice (one self-healed,
+       one fixed), checkout-api once. no flapping, no unanswered alerts.
+       detection is fast, ~2 min median.
+```
+
+Uptime per target, median time to detect, targets that keep falling over
+(**flapping is a different problem** from one that fell over once), and anything
+it paged you about that nobody ever answered. Every number is computed from the
+incidents on disk — a key that isn't there is data that doesn't exist, and it
+says so instead of estimating.
+
+## "Quiet for an hour, I'm deploying"
+
+Tell it in the chat and it stops interrupting until then. It keeps probing and
+keeps recording — only the message waits, and the safety net delivers it when the
+window passes. There's also an optional quiet-hours range, with per-target
+exceptions so the thing that really matters still gets through.
+
+A snooze always has an end. If you don't give one it asks, because an agent
+silenced forever is an agent uninstalled without knowing it.
+
+## English or Portuguese
+
+It asks in the first message and writes everything in the language you pick.
+Evidence never gets translated — log lines, commit names, command output show up
+exactly as they are on the machine. Translating an error message sends you
+googling for a string that doesn't exist.
+
 ## What it watches
 
 - **HTTP** — a URL and an expected status

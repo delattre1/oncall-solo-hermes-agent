@@ -33,6 +33,7 @@ COPY oc-setup/            /opt/hermes/skills/oc-setup/
 COPY oc-diagnose/         /opt/hermes/skills/oc-diagnose/
 COPY oc-act/              /opt/hermes/skills/oc-act/
 COPY oc-status/           /opt/hermes/skills/oc-status/
+COPY oc-health/           /opt/hermes/skills/oc-health/
 COPY oc-shared/           /opt/hermes/skills/oc-shared/
 
 # Normaliza os modos que o checkout carregou, preservando o bit de executavel:

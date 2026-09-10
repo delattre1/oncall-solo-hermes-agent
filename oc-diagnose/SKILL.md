@@ -61,7 +61,23 @@ Da lista `remedies` da config, pelo nome. Um so -- duas opcoes as 3h da manha e
 uma decisao a mais pra quem acabou de acordar. Se nenhum se aplica, diga o que
 ele deveria fazer a mao e nao ofereca nada.
 
+## Antes de mandar: o dono pediu silencio?
+
+Leia `language`, `quiet_hours` e `snooze_until` do `oncall/config.json`.
+
+Se estiver dentro da soneca ou da faixa de silencio **e o alvo nao estiver em
+`except_targets`**, nao mande nada agora. Marque o incidente como
+`"state": "adiado"` e pare — a rede de seguranca entrega quando a faixa passar. O
+incidente ja esta em disco; o que espera e so a mensagem.
+
+Um incidente `adiado` que sai da faixa e tratado como `novo`: diagnostique e
+avise, dizendo desde quando ele estava fora.
+
 ## A mensagem
+
+**No idioma de `language`** (`en-US` ou `pt-BR`). Evidencia nunca e traduzida:
+linha de log, nome de commit, saida de comando aparecem como estao na maquina.
+Traduzir uma mensagem de erro faz o dono procurar um texto que nao existe.
 
 Uma mensagem, formato de celular. Primeira linha: o que e desde quando.
 
@@ -70,6 +86,15 @@ prod fora do ar ha 4 min. 502 no nginx desde 03:12.
 o worker morreu com OOM logo depois do deploy 8f2a1c --
 aquele commit subiu o batch de 100 pra 5000.
 reverto pro 8f2a1c~1?
+```
+
+Em `en-US`, a mesma coisa:
+
+```
+prod down 4 min. 502 from nginx since 03:12.
+worker died OOM right after deploy 8f2a1c --
+that commit raised the batch from 100 to 5000.
+revert to 8f2a1c~1?
 ```
 
 Sem saudacao, sem "espero que esteja tudo bem", sem markdown. Mande com:
