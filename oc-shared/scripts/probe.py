@@ -209,6 +209,17 @@ def main():
     state = read_json(STATE, {})
     changed = False
 
+    # Alvos que sairam da config saem do estado junto. Sem isto, remover um alvo
+    # que estava fora deixa a entrada dele em `up: false` para sempre, e o
+    # oc-status -- que le exatamente este arquivo -- passa a responder que algo
+    # esta caido quando ninguem mais esta olhando pra aquilo. Um plantao que
+    # mente sobre o proprio escopo e pior que um que nao responde.
+    known = {t.get("name") or t.get("url") or t.get("repo") for t in targets}
+    for gone in [name for name in state if name not in known]:
+        del state[gone]
+        changed = True
+        print(f"probe: {gone} saiu da config -- removido do estado")
+
     for target in targets:
         name = target.get("name") or target.get("url") or target.get("repo")
         kind = target.get("kind", "http")
